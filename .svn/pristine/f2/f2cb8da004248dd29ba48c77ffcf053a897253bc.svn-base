@@ -1,0 +1,307 @@
+package subgit.controller;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.tmatesoft.svn.core.SVNDirEntry;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
+import org.tmatesoft.svn.core.SVNNodeKind;
+
+import subgit.mapper.LeaderMapper;
+import subgit.mapper.TeamMapper;
+import subgit.mapper.UserMapper;
+import subgit.dto.Person;
+import subgit.util.SvnUtil;
+
+@Controller
+public class SvnController {
+	@Autowired
+	TeamMapper teamMapper;
+	
+	@Autowired
+	LeaderMapper leaderMapper;
+	
+	@Autowired
+	UserMapper userMapper;
+	
+	//팀페이지
+		@RequestMapping(value = "/team", method = RequestMethod.GET)
+		public String myPage(Model model,Principal principal){
+			//leader테이블의 idx
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			String url = teamMapper.selectByLoginId(principal.getName()).getGitURL();
+			
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+			
+			HashMap<String, Integer> hs = new HashMap<String, Integer>();
+			
+			for(int i=0;i<list.size();i++){
+				hs.put(list.get(i).getStNum(), svn.printPerLastRevision(list.get(i).getStNum()));
+			}
+			hs.put(principal.getName(), svn.printPerLastRevision(principal.getName()));//리더는 따로 맨 뒤에 넣어준다.
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			list.add(leader);
+			
+			model.addAttribute("count", svn.printAllCommitCount());
+			model.addAttribute("p_count",hs);
+			model.addAttribute("p_list", list);
+			model.addAttribute("size", list.size());
+			
+			/*
+			Map<String,Object> map = new HashMap<String,Object>();
+			Map<String,Object> jsonSubObject = null;
+			ArrayList<Map<String,Object>> jsonList = new ArrayList<Map<String,Object>>();
+			
+			jsonSubObject = new HashMap<String,Object>();
+			for(int i=0;i<list.size();i++){
+				jsonSubObject.put("label",list.get(i).getSt_gitName());
+				jsonSubObject.put("value",hs.get(list.get(i).getStNum()));
+				jsonList.add(jsonSubObject);
+			}
+			map.put("jsonResult",jsonList);
+			model.addAttribute("jsonMap", map);
+			*/
+			
+			return "teampage/home";
+		}
+		
+		@RequestMapping(value = "/home.json", method = RequestMethod.GET)
+		 public @ResponseBody List<Map<String,Object>> jsonresponse(Model model,Principal principal) {
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			String url = teamMapper.selectByLoginId(principal.getName()).getGitURL();
+			
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			list.add(leader);
+			
+			HashMap<String, Integer> hs = new HashMap<String, Integer>();
+			
+			for(int i=0;i<list.size();i++){
+				hs.put(list.get(i).getStNum(), svn.printPerLastRevision(list.get(i).getStNum()));
+			}
+			hs.put(principal.getName(), svn.printPerLastRevision(principal.getName()));//리더는 따로 맨 뒤에 넣어준다.
+			
+			Map<String,Object> jsonSubObject;
+			List<Map<String,Object>> jsonList = new ArrayList<Map<String,Object>>();
+			
+			for(int i=0;i<list.size();i++){
+				jsonSubObject = new HashMap<String,Object>();
+				jsonSubObject.put("label",list.get(i).getSt_gitName());
+				jsonSubObject.put("value",hs.get(list.get(i).getStNum()));
+				
+				jsonList.add(i,jsonSubObject);
+			}
+			
+			
+			return jsonList;
+		 }
+		
+		@RequestMapping("/team/browse")
+		public String browse(Model model,Principal principal,@RequestParam(value="path", required=false) String dirPath,@RequestParam(value="current", required=false) String current) throws SVNException, ParseException{
+			/*팀리스트 .. sidebar부분에 넣어줘야한다.*/
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			
+			list.add(leader);
+			/*/팀리스트 ..*/
+			
+			String url = teamMapper.selectByLoginId(principal.getName()).getGitURL();
+			
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+			
+			List<SVNDirEntry> p_log = new ArrayList<SVNDirEntry>();
+			
+			String path = "";
+			
+			if(current!=null){
+				path = current;
+			}
+			if(dirPath!=null&&dirPath.length()>1){
+				path = dirPath+"/"+current;
+			}
+			
+			p_log = svn.printDir(path);
+			boolean isDir = true;
+			long revision = 0;
+			
+			if(p_log.isEmpty()){//파일이다라는 의미
+				List<SVNDirEntry> temp = new ArrayList<SVNDirEntry>();
+				temp = svn.printDir(dirPath);
+				
+				for(int i=0;i<temp.size();i++){
+					if((temp.get(i).getKind()!=SVNNodeKind.DIR)&&(temp.get(i).getPath().equals(current))){
+						isDir = false;
+						revision = temp.get(i).getRevision();
+					}
+				}
+			}
+			
+			model.addAttribute("p_list", list);
+			model.addAttribute("p_log", p_log);
+			model.addAttribute("currentPath", path);
+			
+			if(isDir==true){
+				return "teampage/browse";
+			}else{
+				return "redirect:/team/browse/content?path="+path+"&"+"revision="+revision;
+			}
+		}
+		
+		@RequestMapping("/team/browse/content")
+		public String browseContent(Model model,Principal principal,@RequestParam(value="path", required=true) String filePath,@RequestParam(value="revision", required=true) long revision) throws SVNException, ParseException, IOException{
+			String path = filePath;
+			
+			/*팀리스트 .. sidebar부분에 넣어줘야한다.*/
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			
+			list.add(leader);
+			/*/팀리스트 ..*/
+			
+			String url = teamMapper.selectByLoginId(principal.getName()).getGitURL();
+			
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+			ByteArrayOutputStream content = svn.printContent(path, revision);
+		
+			String str = new String(content.toByteArray());
+			str = content.toString("UTF-8");
+			
+			model.addAttribute("p_list", list);
+			model.addAttribute("str", str);
+			
+			return "teampage/detail";
+		}
+		
+		@RequestMapping("/team/edit")
+		public String edit(){
+			
+			return "teampage/edit";
+		}
+		
+		@RequestMapping(value = "/team/member.json", method = RequestMethod.GET)
+		 public @ResponseBody List<Map<String,Object>> memberJson(Model model,@RequestParam ("st") String st, @RequestParam ("startDate") String startDate, @RequestParam ("endDate") String endDate,Principal principal) throws ParseException {
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			String url = teamMapper.selectByLoginId(principal.getName()).getGitURL();
+			
+			System.out.println("st: "+st);
+			System.out.println("startDate: "+startDate);
+			System.out.println("endDate: "+endDate);
+			
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			list.add(leader);
+			
+			Map<String,Object> jsonSubObject = new HashMap<String,Object>();
+			List<Map<String,Object>> jsonList = new ArrayList<Map<String,Object>>();
+			
+			jsonList = svn.printByDate(startDate, endDate, st);
+			
+			return jsonList;
+		 }
+		
+		@RequestMapping(value="/team/member",method=RequestMethod.GET)
+		public String member(Model model, @RequestParam("st") String st, Principal principal){
+			/*팀리스트 .. sidebar부분에 넣어줘야한다.*/
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			
+			list.add(leader);
+			/*/팀리스트 ..*/
+			
+			model.addAttribute("p_list", list);
+			model.addAttribute("author", st);
+			
+			return "teampage/member";
+		}
+		
+		@RequestMapping(value="/team/member",method=RequestMethod.POST)
+		public String memberFind(Model model, @RequestParam("st") String st,@RequestParam("startDate") String startDate,@RequestParam("endDate") String endDate, Principal principal) throws ParseException{
+			
+			/*팀리스트 .. sidebar부분에 넣어줘야한다.*/
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			String url = teamMapper.selectByLoginId(principal.getName()).getGitURL();
+			
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+			
+			HashMap<String, Integer> hs = new HashMap<String, Integer>();
+			
+			for(int i=0;i<list.size();i++){
+				hs.put(list.get(i).getStNum(), svn.printPerLastRevision(list.get(i).getStNum()));
+			}
+			hs.put(principal.getName(), svn.printPerLastRevision(principal.getName()));//리더는 따로 맨 뒤에 넣어준다.
+			
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			list.add(leader);
+			/*/팀리스트 ..*/
+			
+			
+			List<SVNLogEntry> p_log = new ArrayList<SVNLogEntry>();
+			HashMap<Integer,List<SVNLogEntryPath>> p_entryPath =new HashMap<Integer,List<SVNLogEntryPath>>();
+			
+			p_log = svn.printPerLastRevisionLog(st,startDate,endDate);
+			p_entryPath = svn.printEntryPath(p_log);
+			
+			for(int i=0;i<p_entryPath.size();i++){
+				for(int j=0;j<p_entryPath.get(i).size();j++){
+					System.out.println(i+" "+p_entryPath.get(i).get(j));
+				}
+			}
+			
+			model.addAttribute("p_log", p_log);
+			model.addAttribute("author", st);
+			model.addAttribute("p_endtryPath", p_entryPath);
+			model.addAttribute("startDate", startDate);
+			model.addAttribute("endDate", endDate);
+			model.addAttribute("p_list", list);
+			
+			return "teampage/member";
+		}
+}

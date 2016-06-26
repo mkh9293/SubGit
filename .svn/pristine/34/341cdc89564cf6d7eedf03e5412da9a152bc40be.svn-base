@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="subgit.mapper.UserMapper">
+	<select id="selectAll" resultType="subgit.dto.Person">
+		SELECT *
+		FROM person
+	</select>
+	
+	<select id="selectByLoginId" resultType="subgit.dto.Person">
+        SELECT * FROM person WHERE teamNum = (SELECT idx FROM team WHERE leaderNum_fk = #{loginId})
+    </select>
+	
+	<insert id="insert" parameterType="java.util.List">
+		INSERT person (st_gitName, stNum, teamNum)
+		VALUES
+		<foreach collection="list" item="person" separator=",">
+			(#{person.st_gitName},#{person.stNum},#{person.teamNum})
+		</foreach>
+	</insert>
+</mapper>

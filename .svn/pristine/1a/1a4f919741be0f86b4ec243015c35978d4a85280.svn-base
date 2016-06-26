@@ -1,0 +1,46 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css"
+	integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd"
+	crossorigin="anonymous">
+<link
+	href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css"
+	rel="stylesheet">
+</head>
+<body>
+	<div id="wrapper">
+		<%@include file="/WEB-INF/includes/teamHeader.jsp"%>
+
+		<div id="page-wrapper">
+
+			<div class="container-fluid">
+				<!-- Page Heading -->
+				<div class="row">
+					<div class="col-lg-12">
+						<h3 class="page-header">{팀명}</h3>
+					</div>
+				</div>
+				<div class="container-fluid">
+					<table class="table">
+						<c:forEach var="plog" items="${p_log}">
+							<tbody>
+								<tr>
+									<td><a
+										href="${pageContext.request.contextPath}/team/browse?path=${currentPath}&current=${plog.name }">${plog.name }</a></td>
+									<td>${plog.kind }</td>
+								</tr>
+							</tbody>
+						</c:forEach>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

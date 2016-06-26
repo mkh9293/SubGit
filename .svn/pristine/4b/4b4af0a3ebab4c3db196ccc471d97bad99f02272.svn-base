@@ -1,0 +1,27 @@
+package subgit.dto;
+
+public class Person {
+	String st_gitName;
+	String stNum;
+	int teamNum;
+	
+	public String getSt_gitName() {
+		return st_gitName;
+	}
+	public void setSt_gitName(String st_gitName) {
+		this.st_gitName = st_gitName;
+	}
+	public String getStNum() {
+		return stNum;
+	}
+	public void setStNum(String stNum) {
+		this.stNum = stNum;
+	}
+	public int getTeamNum() {
+		return teamNum;
+	}
+	public void setTeamNum(int teamNum) {
+		this.teamNum = teamNum;
+	}
+	
+}

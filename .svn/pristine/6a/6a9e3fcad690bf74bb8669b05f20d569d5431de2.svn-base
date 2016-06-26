@@ -1,0 +1,26 @@
+#signup{
+    width:450px;
+    margin:auto;
+    margin-top:10%;
+    font-size:20px;
+}
+#urlDiv{
+	width:600px;
+}
+#urlDiv button{
+	vertical-align:top;
+	height:30px;
+	padding:5px;
+}
+.url{
+    width:410px;
+}
+input{
+    width:200px;
+}
+table{
+    text-align:center;
+}
+td:nth-child(2){
+    padding: 10px; 
+}

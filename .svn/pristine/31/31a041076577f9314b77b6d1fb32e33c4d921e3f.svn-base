@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="subgit.mapper.TeamMapper">
+	<select id="selectAll" resultType="subgit.dto.Team">
+		SELECT *
+		FROM team
+	</select>
+	
+	<select id="selectByLoginId" resultType="subgit.dto.Team">
+        SELECT * FROM team WHERE leaderNum_fk = (SELECT idx FROM leader WHERE leaderNum = #{leaderNum})
+    </select>
+	
+	<insert id="insert" useGeneratedKeys="true" keyProperty="idx">
+		INSERT team(teamName, teamURL, password, loginPw, intro, section, teamImage, leaderNum_fk)
+		VALUES (#{teamName}, #{teamURL}, #{password}, #{loginPw}, #{intro}, #{section}, #{teamImage}, #{leaderNum_fk})
+	</insert>
+</mapper>

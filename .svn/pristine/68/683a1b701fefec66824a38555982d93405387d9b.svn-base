@@ -1,0 +1,363 @@
+package subgit.util;
+
+import java.io.ByteArrayOutputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.tmatesoft.svn.core.SVNDirEntry;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
+import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.SVNProperties;
+import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
+import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
+import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
+import org.tmatesoft.svn.core.io.SVNRepository;
+import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
+
+public class SvnUtil {
+
+	String url;
+	String name;
+	String password;
+	//초기화
+
+	SVNRepository repository = null;
+	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+
+
+	public void init(String url, String name, String password){
+		this.url = url;
+		this.name = name;
+		this.password = password;
+
+		setupLibrary();
+		
+		try {
+			repository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(url));
+		} catch (SVNException svne) {
+			System.err
+			.println("error while creating an SVNRepository for the location '"
+					+ url + "': " + svne.getMessage());
+			System.exit(1);
+		}
+		ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(name, password);
+		repository.setAuthenticationManager(authManager);
+	}
+	
+	//어떤 url형식인지 확인하고 다 설정 해준다.
+	private static void setupLibrary() {
+		DAVRepositoryFactory.setup();
+		SVNRepositoryFactoryImpl.setup();
+		FSRepositoryFactory.setup();
+	}
+	
+	public List<SVNLogEntry> printLastRevision() throws SVNException{
+	//마지막 버전 로그 출력 	
+		long endRevision = -1;//HEAD (the latest) revision
+
+        endRevision = repository.getLatestRevision();
+
+        Collection logEntries = null;
+        try {
+        	logEntries = repository.log(new String[] {""}, null,
+            		endRevision-1, endRevision, true, true);
+
+        } catch (SVNException svne) {
+            System.out.println("error while collecting log information for '"
+                    + url + "': " + svne.getMessage());
+            System.exit(1);
+        }
+        
+        List<SVNLogEntry> list = new ArrayList<SVNLogEntry>();
+        
+        for (Iterator entries = logEntries.iterator(); entries.hasNext();) {
+			SVNLogEntry logEntry = (SVNLogEntry) entries.next();
+			list.add(logEntry);
+		}
+        
+        System.out.println(list);
+        return list;
+	}
+	
+	
+	public int printAllCommitCount(){
+		//마지막 버전의 전체 커밋 수 계산
+		long startRevision = 0;
+		long endRevision = -1;//HEAD (the latest) revision
+
+		try {
+			endRevision = repository.getLatestRevision();
+		} catch (SVNException svne) {
+			System.err.println("error while fetching the latest repository revision: " + svne.getMessage());
+			System.exit(1);
+		}
+
+		Collection logEntries = null;
+		try {
+			logEntries = repository.log(new String[] {""}, null,
+					startRevision, endRevision, true, true);
+
+		} catch (SVNException svne) {
+			System.out.println("error while collecting log information for '"
+					+ url + "': " + svne.getMessage());
+			System.exit(1);
+		}
+
+		//전체 커밋수 계산
+		int count = logEntries.size()-1;
+
+		System.out.println("전체 커밋수: "+count);
+
+		return count;
+	}
+
+	public int printPerLastRevision(String person){
+		//개인 커밋 수 계산
+		long startRevision = 0;
+		long endRevision = -1;//HEAD (the latest) revision
+
+
+		try {
+			endRevision = repository.getLatestRevision();
+		} catch (SVNException svne) {
+			System.err.println("error while fetching the latest repository revision: " + svne.getMessage());
+			System.exit(1);
+		}
+
+		Collection logEntries = null;
+		try {
+			logEntries = repository.log(new String[] {""}, null,
+					startRevision, endRevision, true, true);
+
+		} catch (SVNException svne) {
+			System.out.println("error while collecting log information for '"
+					+ url + "': " + svne.getMessage());
+			System.exit(1);
+		}
+		//개인 커밋수 계산
+		int p_count = 0;
+
+		for (Iterator entries = logEntries.iterator(); entries.hasNext();) {
+			SVNLogEntry logEntry = (SVNLogEntry) entries.next();
+			if(logEntry.getAuthor().equals(person)){
+				p_count++;
+			}
+		}
+		System.out.println("개인 커밋수: "+p_count);
+
+		return p_count;
+	}
+
+	public List<SVNLogEntry> printPerLastRevisionLog(String person,String startDate,String endDate) throws ParseException{
+		//개인 커밋 로그 받아오려고 만듬
+		long startRevision = 0;
+		long endRevision = -1;//HEAD (the latest) revision
+
+		try {
+			endRevision = repository.getLatestRevision();
+		} catch (SVNException svne) {
+			System.err.println("error while fetching the latest repository revision: " + svne.getMessage());
+			System.exit(1);
+		}
+
+		Collection logEntries = null;
+		try {
+			logEntries = repository.log(new String[] {""}, null,
+					startRevision, endRevision, true, true);
+
+		} catch (SVNException svne) {
+			System.out.println("error while collecting log information for '"
+					+ url + "': " + svne.getMessage());
+			System.exit(1);
+		}
+		//시간 비교 
+		Date start = df.parse(startDate);
+		Date end = df.parse(endDate);
+		end.setDate(end.getDate()+1);
+		
+		//개인 로그 저장
+		List<SVNLogEntry> list = new ArrayList<SVNLogEntry>();
+
+		for (Iterator entries = logEntries.iterator(); entries.hasNext();) {
+			SVNLogEntry logEntry = (SVNLogEntry) entries.next();
+			if(logEntry.getAuthor().equals(person)&&logEntry.getDate().after(start)&&logEntry.getDate().before(end)){
+				list.add(logEntry);
+			}
+		}
+		return list;
+	}
+
+	public HashMap<Integer,List<SVNLogEntryPath>> printEntryPath(List<SVNLogEntry> logEntry) throws ParseException{
+		//Commit log 출력
+		
+		List<SVNLogEntryPath> list = null;
+		HashMap<Integer,List<SVNLogEntryPath>> map = new HashMap<Integer,List<SVNLogEntryPath>>();
+
+		for(int i=0;i<logEntry.size();i++){
+			list = new ArrayList<SVNLogEntryPath>();
+			if (logEntry.get(i).getChangedPaths().size() > 0) {
+				Set changedPathsSet = logEntry.get(i).getChangedPaths().keySet();
+				for (Iterator changedPaths = changedPathsSet.iterator(); changedPaths.hasNext();) {
+					SVNLogEntryPath entryPath = (SVNLogEntryPath) logEntry.get(i).getChangedPaths().get(changedPaths.next());
+					list.add(entryPath);	
+				}
+			}
+			map.put(i, list);
+		}
+
+		return map;
+	}
+	
+	
+	public List<Map<String, Object>> printByDate(String startDate, String endDate, String person ) throws ParseException{
+		//member.json요청시 return 
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		//값을 저장할 공간
+
+		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+
+		//개인 커밋 수 계산
+		long startRevision = 0;
+		long endRevision = -1;//HEAD (the latest) revision
+
+
+		try {
+			endRevision = repository.getLatestRevision();
+		} catch (SVNException svne) {
+			System.err.println("error while fetching the latest repository revision: " + svne.getMessage());
+			System.exit(1);
+		}
+
+		Collection logEntries = null;
+		try {
+			logEntries = repository.log(new String[] {""}, null,
+					startRevision, endRevision, true, true);
+
+		} catch (SVNException svne) {
+			System.out.println("error while collecting log information for '"
+					+ url + "': " + svne.getMessage());
+			System.exit(1);
+		}
+		
+		Map<String, Object> tempList;
+		
+		//개인 커밋수 계산
+		int p_count = 0;
+		
+		//시간 비교 
+		Date start = df.parse(startDate);
+		Date end = df.parse(endDate);
+
+		for (Iterator entries = logEntries.iterator(); entries.hasNext();) {
+			SVNLogEntry logEntry = (SVNLogEntry) entries.next();
+			if(logEntry.getAuthor().equals(person)&&logEntry.getDate().after(start)&&logEntry.getDate().before(end)){
+				p_count++;
+				if(map.containsKey(df.format(logEntry.getDate()))){
+					Object temp = map.get(df.format(logEntry.getDate()));
+					int a = (int)temp;
+					a++;
+					temp = a;
+					map.put(df.format(logEntry.getDate()), temp);
+				}else{
+					map.put(df.format(logEntry.getDate()), 1);
+				}
+			}
+		}
+		
+		for( Map.Entry<String, Object> elem : map.entrySet() ){
+			tempList = new HashMap<String, Object>();
+			System.out.println( String.format("키 : %s, 값 : %s", elem.getKey(), elem.getValue()) );
+            tempList.put("label", elem.getKey());
+            tempList.put("value", elem.getValue());
+        
+            list.add(tempList);
+        }
+		System.out.println("list: "+list);
+		
+		return list;
+	}
+	
+	public List<SVNDirEntry> printDir(String path) throws SVNException{
+		long latestRevision = repository.getLatestRevision(); 
+		
+		Collection entries = repository.getDir( path, -1 , null , (Collection) null );
+		Iterator iterator = entries.iterator();
+		
+		List<SVNDirEntry> list = new ArrayList<SVNDirEntry>();
+		
+		while (iterator.hasNext()) {
+			 	SVNDirEntry entry = (SVNDirEntry) iterator.next();
+	            list.add(entry);
+	     }
+		
+		 return list;
+	}
+	
+	public List<Map<SVNDirEntry,Boolean>> printDir2(String path) throws SVNException{
+		long latestRevision = repository.getLatestRevision(); 
+		
+		Collection entries = repository.getDir( path, -1 , null , (Collection) null );
+		Iterator iterator = entries.iterator();
+		
+		List<SVNDirEntry> list = new ArrayList<SVNDirEntry>();
+		Map<SVNDirEntry,Boolean> map = new HashMap<SVNDirEntry,Boolean>();
+		List<Map<SVNDirEntry,Boolean>> result = new ArrayList<Map<SVNDirEntry,Boolean>>();
+		
+		while (iterator.hasNext()) {
+			 	SVNDirEntry entry = (SVNDirEntry) iterator.next();
+	            list.add(entry);
+	            if(entry.getKind() == SVNNodeKind.DIR){
+	                map.put(entry, true);
+	        	}
+	            else{
+	                map.put(entry, false);
+	        	}
+	            result.add(map);
+	    }
+		System.out.println("result: "+result);
+		 
+		 return result;
+	}
+	
+	public ByteArrayOutputStream printContent(String filePath,long revision){
+		SVNDirEntry svn = new SVNDirEntry(null, null, filePath, null, 0, false, revision, null, filePath);
+        System.out.println(svn.getPath());
+        
+        SVNProperties fileProperties = new SVNProperties();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try {
+            SVNNodeKind nodeKind = repository.checkPath(filePath, -1);
+            
+            if (nodeKind == SVNNodeKind.NONE) {
+                System.err.println("There is no entry at '" + url + "'.");
+                System.exit(1);
+            } else if (nodeKind == SVNNodeKind.DIR) {
+                System.err.println("The entry at '" + url
+                        + "' is a directory while a file was expected.");
+                System.exit(1);
+            }
+            repository.getFile(filePath, -1, fileProperties, baos);
+
+        } catch (SVNException svne) {
+            System.err.println("error while fetching the file contents and properties: " + svne.getMessage());
+            System.exit(1);
+        }
+        
+        return baos;
+	}
+}

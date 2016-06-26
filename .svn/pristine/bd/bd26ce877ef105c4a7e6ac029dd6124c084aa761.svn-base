@@ -1,0 +1,49 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script src="/subgit/resources/js/diff.js"></script>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+<%@ include file ="../../../WEB-INF/includes/src.jsp" %>
+<link href="http://alexgorbatchev.com/pub/sh/current/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
+<script src="http://alexgorbatchev.com/pub/sh/current/scripts/shCore.js" type="text/javascript"></script>
+<script src="http://alexgorbatchev.com/pub/sh/current/scripts/shAutoloader.js" type="text/javascript"></script>
+ <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+<script>
+$(function(){
+var dmp = new diff_match_patch();
+  
+  var text1 = document.getElementById('text1').value;
+  var text2 = document.getElementById('text2').value;
+
+  var d = dmp.diff_main(text1, text2);
+ 
+  dmp.diff_cleanupSemantic(d);
+ 
+  var ds = dmp.diff_prettyHtml(d);
+  var pat = /&para;/gi;   
+  var te = ds.replace(pat," ");
+  document.getElementById('resultText').innerHTML = te; 
+
+});
+</script>
+<script type="text/javascript">
+     SyntaxHighlighter.all()
+</script>
+
+</head>
+<body>
+	<textarea id="text1" style="display:inline-block; width: 500px; height: 500px; scroll: none">${currentFileContent}</textarea>
+	<textarea id="text2" style="display:none">${searchFileContent }</textarea>
+	<pre><code class="html" id="resultText"></code></pre>
+<!-- 	<pre class="brush:html" style="display:inline-block; overflow:scoll;">
+	<div   id="resultText" style="width: 500px; height: 400px;"></div>
+	</pre> -->
+</body>
+</html>

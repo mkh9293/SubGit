@@ -1,0 +1,78 @@
+package subgit.dto;
+
+import java.io.Serializable;
+
+public class Team implements Serializable{
+	int idx;
+	String teamName;
+	String teamURL;
+	String password;
+	String intro;
+	String section;
+	int leaderNum_fk;
+	String loginPw;
+	byte[] teamImage;
+	String temaRepo;
+	
+	public String getTeamRepo() {
+		return temaRepo;
+	}
+	public void setTeamRepo(String temaRepo) {
+		this.temaRepo = temaRepo;
+	}
+	public int getIdx() {
+		return idx;
+	}
+	public void setIdx(int idx) {
+		this.idx = idx;
+	}
+	public String getTeamName() {
+		return teamName;
+	}
+	public void setTeamName(String teamName) {
+		this.teamName = teamName;
+	}
+	public String getTeamURL() {
+		return teamURL;
+	}
+	public void setTeamURL(String teamURL) {
+		this.teamURL = teamURL;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	public String getIntro() {
+		return intro;
+	}
+	public void setIntro(String intro) {
+		this.intro = intro;
+	}
+	public String getSection() {
+		return section;
+	}
+	public void setSection(String section) {
+		this.section = section;
+	}
+	public int getLeaderNum_fk() {
+		return leaderNum_fk;
+	}
+	public void setLeaderNum_fk(int leaderNum_fk) {
+		this.leaderNum_fk = leaderNum_fk;
+	}
+	public byte[] getTeamImage() {
+		return teamImage;
+	}
+	public void setTeamImage(byte[] teamImage) {
+		this.teamImage = teamImage;
+	}
+	public String getLoginPw() {
+		return loginPw;
+	}
+	public void setLoginPw(String loginPw) {
+		this.loginPw = loginPw;
+	}
+	
+}

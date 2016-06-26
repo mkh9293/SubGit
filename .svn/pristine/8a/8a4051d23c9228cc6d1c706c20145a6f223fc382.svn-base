@@ -1,0 +1,43 @@
+package subgit.dto;
+
+import java.io.Serializable;
+
+public class Team implements Serializable{
+	int idx;
+	String gitURL;
+	String password;
+	int leaderNum_fk;
+	String leaderName;
+	
+	
+	public String getLeaderName() {
+		return leaderName;
+	}
+	public void setLeaderName(String leaderName) {
+		this.leaderName = leaderName;
+	}
+	public int getIdx() {
+		return idx;
+	}
+	public void setIdx(int idx) {
+		this.idx = idx;
+	}
+	public String getGitURL() {
+		return gitURL;
+	}
+	public void setGitURL(String gitURL) {
+		this.gitURL = gitURL;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	public int getLeaderNum_fk() {
+		return leaderNum_fk;
+	}
+	public void setLeaderNum_fk(int leaderNum_fk) {
+		this.leaderNum_fk = leaderNum_fk;
+	}
+}

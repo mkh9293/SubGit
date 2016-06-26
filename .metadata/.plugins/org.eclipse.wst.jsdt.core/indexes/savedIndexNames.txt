@@ -1,7 +1,0 @@
-INDEX VERSION 1.3+D:\Study\Naroho\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
-2162981911.index
-769584106.index
-4022405436.index
-4202548107.index
-13559886.index
-2835356683.index

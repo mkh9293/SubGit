@@ -1,0 +1,14 @@
+package subgit.mapper;
+
+import java.util.List;
+
+import subgit.dto.Leader;
+
+public interface LeaderMapper {
+	List<Leader> selectAll();
+	Leader selectByLoginId(String leaderNum);
+	void insert(Leader Leader);
+	Leader selectByIdx(int idx);
+	void update(Leader leader);
+	void delete(int idx);
+}

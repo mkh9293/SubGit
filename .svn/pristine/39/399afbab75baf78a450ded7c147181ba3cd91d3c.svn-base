@@ -1,0 +1,308 @@
+package subgit.controller;
+
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
+import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
+
+import subgit.dto.Leader;
+import subgit.dto.Person;
+import subgit.dto.Team;
+import subgit.mapper.LeaderMapper;
+import subgit.mapper.TeamMapper;
+import subgit.mapper.UserMapper;
+import subgit.service.MyAuthenticationProvider;
+import subgit.service.UserService;
+import subgit.util.GitUtil;
+
+import subgit.util.SvnUtil;
+
+@Controller
+public class GitController {
+	
+	@Autowired TeamMapper teamMapper;
+	@Autowired LeaderMapper leaderMapper;
+	@Autowired UserMapper userMapper;
+	
+	private String getImageContentType(String fileName) {       
+    	String contentType = "image/jpeg";
+    	int index = fileName.lastIndexOf('.');
+    	if (index > 0) {
+    		String extension = fileName.substring(index + 1).toLowerCase();
+    		if (".png.gif.bmp.tiff".indexOf(extension) > 0) 
+    			contentType = "image/" + extension;        
+    		}
+    	return contentType;     
+    }
+	
+	@RequestMapping("/")
+	public String index(Model model){
+		model.addAttribute("teamList", teamMapper.selectAll());
+		return "index";
+	}
+	@RequestMapping("/downloadImage")
+    public void downloadImage(@RequestParam("id") int idx, HttpServletResponse response) throws IOException { 
+		List<Team> team = new ArrayList<Team>();
+		team = teamMapper.selectAll();
+		response.setContentType(getImageContentType(team.get(idx).getTeamName()));
+        try (BufferedOutputStream output = new BufferedOutputStream(response.getOutputStream())) { 
+            output.write(team.get(idx).getTeamImage()); 
+        }
+	}
+	@RequestMapping("/downloadTeamImage")
+    public void downloadImage(Principal principal, HttpServletResponse response) throws IOException {
+		//팀 정보 받아오기
+		Team team = teamMapper.selectByLoginId(principal.getName());
+		
+		response.setContentType(getImageContentType(team.getTeamName()));
+        try (BufferedOutputStream output = new BufferedOutputStream(response.getOutputStream())) { 
+            output.write(team.getTeamImage()); 
+        }
+	}
+	@RequestMapping("/about")
+	public String about(Model model){
+		model.addAttribute("userList", userMapper.selectAll());
+		model.addAttribute("teamList", teamMapper.selectAll());
+		model.addAttribute("leaderList",leaderMapper.selectAll());
+		
+		return "homepage/about";
+	}
+	
+	@RequestMapping(value="/signup" , method=RequestMethod.GET)
+	public String signup(Model model){
+		
+		return "homepage/selectSignUp";
+	}
+	
+	@RequestMapping(value="/git/signup" , method=RequestMethod.GET)
+	public String gitSignup(Model model){
+		
+		return "homepage/signup";
+	}
+	
+	@RequestMapping(value="/git/cloneUrl", method=RequestMethod.GET)
+	public @ResponseBody List<String> cloneUrl(@RequestParam("gitUrl") String gitUrl) throws NoHeadException, IOException, GitAPIException{
+		List<String> list = new ArrayList<String>();
+		GitUtil gitUtil = new GitUtil();
+		gitUtil.cloneRepository(gitUrl);
+		list = gitUtil.gitName();
+		return list;
+	}
+	
+	@RequestMapping(value="/svn/signup" , method=RequestMethod.GET)
+	public String svnSignup(Model model){
+		
+		return "homepage/svnSignUp";
+	}
+	
+	@RequestMapping(value="/git/signup" , method=RequestMethod.POST)
+	public String signup(Model model,Leader leader,@RequestParam("password") String password, Team team, Person person,@RequestParam("getfile") MultipartFile uploadedFile) throws IOException{
+		team.setSection("git");
+		leaderMapper.insert(leader); 
+		team.setTeamImage(uploadedFile.getBytes());
+		team.setLeaderNum_fk((leader.getIdx()));
+		team.setLoginPw(MyAuthenticationProvider.encryptPasswd(password));
+		
+		teamMapper.insert(team);
+		
+		if((person.getStNum()!=null)){
+			userMapper.insert(UserService.getPersonList(person, team));
+		}
+		
+		return "redirect:/about";
+	}
+	
+	@RequestMapping(value="/signup" , method=RequestMethod.POST)
+	public String signup(Model model,Leader leader,@RequestParam("password") String password,@RequestParam("getfile") MultipartFile uploadedFile, Team team, Person person) throws IOException{
+		leaderMapper.insert(leader);
+
+		team.setLeaderNum_fk((leader.getIdx()));
+		team.setPassword(password);
+		team.setLoginPw(MyAuthenticationProvider.encryptPasswd(password));
+		team.setTeamImage(uploadedFile.getBytes());
+		teamMapper.insert(team);
+		
+		if((person.getStNum()!=null)){
+			userMapper.insert(UserService.getPersonList(person, team));
+		}
+
+		return "redirect:/about";
+	}
+	
+	
+	//내 팀페이지
+		@RequestMapping(value = "/myTeam", method = RequestMethod.GET)
+		public String myPage(Model model,Principal principal){
+			
+			//leader테이블의 idx
+			int idx = leaderMapper.selectByLoginId(principal.getName()).getIdx();
+			List<Person> list = userMapper.selectByLoginId(idx);
+			String url = teamMapper.selectByLoginId(principal.getName()).getTeamURL();
+			int leaderNum_fk = teamMapper.selectByLoginId(principal.getName()).getLeaderNum_fk();
+			String section = teamMapper.selectByLoginId(principal.getName()).getSection();
+			
+			/*
+			SvnUtil svn = new SvnUtil();
+			svn.init(url, principal.getName(), "wldnr335");
+
+			HashMap<String, Integer> hs = new HashMap<String, Integer>();
+
+			for(int i=0;i<list.size();i++){
+				hs.put(list.get(i).getStNum(), svn.printPerLastRevision(list.get(i).getStNum()));
+			}
+			hs.put(principal.getName(), svn.printPerLastRevision(principal.getName()));//리더는 따로 맨 뒤에 넣어준다.
+
+			Person leader = new Person();
+			leader.setSt_gitName(leaderMapper.selectByLoginId(principal.getName()).getGitName());
+			leader.setStNum(principal.getName());
+			list.add(leader);
+
+			model.addAttribute("count", svn.printAllCommitCount());
+			model.addAttribute("p_count",hs);
+			model.addAttribute("p_list", list);
+			model.addAttribute("size", list.size());
+			*/
+			
+			return	"redirect:"+section+"/teampage/teamEnter?teamURL="+url+"&leaderNum_fk="+leaderNum_fk;
+		}
+		
+		
+	@RequestMapping("/login")
+	public String login(){
+		
+		return "homepage/login";
+	}
+	
+	@RequestMapping("/help")
+	public String help(){
+		
+		return "homepage/help";
+	}
+	
+	@RequestMapping(value="/edit", method=RequestMethod.GET)
+	public String edit(Principal principal, Model model){
+		//정보 받아오기
+		Leader leader = new Leader();
+		leader = leaderMapper.selectByLoginId(principal.getName());
+		
+		Team team = new Team();
+		team = teamMapper.selectByLoginId(leader.getLeaderNum());
+		
+		model.addAttribute("teamInfo", team);
+		model.addAttribute("leader", leader);
+		
+		return "homepage/svnEdit";
+	}
+	
+	//Edit Post
+	@RequestMapping(value="/edit", method=RequestMethod.POST)
+	public String edit1(Principal principal,Model model,Leader leader,@RequestParam("password") String password, @RequestParam("p_idx") String p_idx, @RequestParam("getfile") MultipartFile uploadedFile, Team team, Person person) throws IOException{
+		Leader l_temp = new Leader();
+		l_temp = leaderMapper.selectByLoginId(principal.getName());
+		
+		//정보 받아오기
+		leader.setIdx(l_temp.getIdx());
+		leaderMapper.update(leader);
+		
+		Team temp = new Team();
+		temp = teamMapper.selectByLoginId(leader.getLeaderNum());
+		
+		team.setLeaderNum_fk((leader.getIdx()));
+		team.setSection(temp.getSection());
+		team.setPassword(password);
+		team.setLoginPw(MyAuthenticationProvider.encryptPasswd(password));
+		team.setIdx(temp.getIdx());
+		team.setTeamImage(uploadedFile.getBytes());
+		
+		teamMapper.update(team);
+		
+		if(person.getStNum()!=null){
+			List<Person> list = new ArrayList<Person>();
+			list = UserService.getEditList(person, p_idx, team);
+			
+			Person p_temp = new Person();
+			for(int i=0;i<list.size();i++){
+				p_temp = list.get(i);
+				userMapper.update(p_temp);
+			}
+		}
+		
+		return "redirect:/";
+	}
+	
+	//edit 페이지에서 팀원 정보 보내주기
+	@RequestMapping(value = "/edit.json", method = RequestMethod.GET)
+	public @ResponseBody List<Map<String,Object>> editresponse(Principal principal, Model model) {
+		//정보 받아오기
+		Leader leader = new Leader();
+		leader = leaderMapper.selectByLoginId(principal.getName());
+
+		List<Person> list = userMapper.selectByLoginId(leader.getIdx());
+
+		Map<String,Object> jsonSubObject;
+		List<Map<String,Object>> jsonList = new ArrayList<Map<String,Object>>();
+		
+		for(int i=0;i<list.size();i++){
+			jsonSubObject = new HashMap<String,Object>();
+			
+			jsonSubObject.put("idx",list.get(i).getIdx());
+			jsonSubObject.put("stNum",list.get(i).getStNum());
+			jsonSubObject.put("stName",list.get(i).getStName());
+			jsonSubObject.put("teamNum",list.get(i).getTeamNum());
+			
+			jsonList.add(i,jsonSubObject);
+		}
+
+		return jsonList;
+	}
+	//delete Post
+	@RequestMapping(value="/delete")
+	public String delete(Principal principal) throws IOException{
+		Leader leader = new Leader();
+		leader = leaderMapper.selectByLoginId(principal.getName());
+		leaderMapper.delete(leader.getIdx());
+		
+		return "redirect:/logout";
+	}
+	
+
+	//프로젝트 명으로 zip파일을 받을 수 있다.
+		@RequestMapping(value = "/{creatorName}/{projectName}.zip", method = RequestMethod.GET)
+		public void getZipFile(@PathVariable("creatorName") String creatorName,
+				@PathVariable("projectName") String projectName,
+				HttpServletResponse response) throws IOException{
+
+			GitUtil gitUtil = new GitUtil();
+			gitUtil.getProjectZip(creatorName,projectName,response);
+		}
+}

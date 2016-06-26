@@ -1,0 +1,245 @@
+package subgit.util;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.FileUtils;
+import org.eclipse.jgit.api.ArchiveCommand;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.archive.TarFormat;
+import org.eclipse.jgit.archive.ZipFormat;
+import org.eclipse.jgit.errors.AmbiguousObjectException;
+import org.eclipse.jgit.errors.CorruptObjectException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.springframework.stereotype.Service;
+
+import subgit.dto.AuthorIdent;
+import subgit.service.GitInfo;
+
+@Service
+public class GitUtil {
+	private String path = "D:/";
+	private Git git;
+	
+	public String getLocalPath() {
+		return path;
+	}
+
+	public void setLocalPath(String path) {
+		this.path = path;
+	}
+
+	
+	public Repository openRepository() throws IOException {
+		/*
+		 * FileRepositoryBuilder builder = new FileRepositoryBuilder();
+		 * Repository repository = builder .readEnvironment() // scan
+		 * environment GIT_* variables .findGitDir() // scan up the file system
+		 * tree .build(); System.out.println(repository);
+		 */
+		File localPath = new File(getLocalPath(), "");
+		Git result = Git.open(localPath);
+		result.close();
+		return result.getRepository();
+	}
+
+	// Repository를 clone해줌
+	public void cloneRepository(String url) throws InvalidRemoteException, TransportException, GitAPIException, IOException {
+		String uniUrl = uniCode(url);
+		File localPath = new File(getLocalPath(), uniUrl);
+		try (Git result = Git.cloneRepository().setURI(url).setDirectory(localPath).call()) {
+			result.close();
+		}catch(JGitInternalException e){
+			
+		}
+		setLocalPath(localPath.toString());
+		
+	}
+
+	// Repository의 디렉토리 이름을 16진수로 정의해줌
+	public String uniCode(String str){
+		String result = "";
+
+	    for (int i = 0; i < str.length(); i++) {
+	      result += String.format("%02X", (int) str.charAt(i));
+	    }
+	    return result;
+	}
+	
+	public boolean removeRepository(String str) throws IOException{
+		File delDir = new File(str);
+		Runtime runtime = Runtime.getRuntime();
+
+		  if(delDir.isDirectory()) {
+			  System.out.println(delDir.getName());
+			  if(delDir.isHidden()){
+				  System.out.println("숨김파일이다.");
+				  if(delDir.getName().equals(".git")){
+					  runtime.exec("cmd /c rd/s/q " + delDir.getAbsolutePath());
+					  File reFile = new File(str+"/git");
+					  System.out.println(reFile.getName()+" 첫");
+					  delDir.renameTo(reFile);
+					  System.out.println(delDir.getName()+" 둘");
+				  }
+			  }
+		   File[] allFiles = delDir.listFiles();
+		   
+		   for(File delAllDir : allFiles) {
+			   removeRepository(delAllDir.getAbsolutePath());
+		   }
+		  }
+		  
+		  return delDir.delete();
+	}
+	
+	// 전체 팀 커밋 수를 구해주는 메소드
+	public int allCommitCount() throws NoHeadException, GitAPIException, IOException {
+		git = new Git(openRepository());
+		Iterable<RevCommit> logs = git.log().call();
+		int length = 0;
+		for (RevCommit revCommit : logs)
+			length++;
+		return length;
+	}
+
+	// 개인 커밋 수 전체를 리스트로 보여주는 쓸모없는 메소드
+	public List<AuthorIdent> personalCommitCount() throws NoHeadException, GitAPIException, IOException {
+		git = new Git(openRepository());
+		Iterable<RevCommit> logs = git.log().call();
+		int length = 0, a = 0;
+		Set<String> set = new HashSet<String>();
+		List<AuthorIdent> authorList = new ArrayList<AuthorIdent>();
+		
+		for (RevCommit revCommit : logs) {
+			set.add(revCommit.getAuthorIdent().getEmailAddress());
+		}
+		String[] list = new String[set.size()];
+		for (String name : set) {
+			AuthorIdent author = new AuthorIdent();
+			list[a] = name;
+			author.setName(list[a]);
+			author.setCommitCount(getCommitCount(author.getName()));
+			a++;
+			authorList.add(author);
+
+		}
+		git.close();
+		return authorList;
+	}
+
+	public int getCommitCount(String name) throws NoHeadException, GitAPIException, IOException {
+		git = new Git(openRepository());
+		int length = 0;
+		for (RevCommit revCommit : git.log().call()) {
+			if (revCommit.getAuthorIdent().getEmailAddress().equals(name)) {
+				length++;
+			}
+		}
+		git.close();
+		return length;
+	}
+
+	public List<AuthorIdent> lineList() throws IOException {
+		GitInfo gitInfo = new GitInfo();
+		gitInfo.run(openRepository(), "master");
+		List<AuthorIdent> list = new ArrayList();
+		AuthorIdent author;
+		
+		for (String names : gitInfo.getAuthorLineImpacts()) {
+			author = new AuthorIdent();
+			author.setName(names);
+			author.setAddLine(gitInfo.getAuthorLineImpact(names).getAdd());
+			author.setDeleteLine(gitInfo.getAuthorLineImpact(names).getDelete());
+			list.add(author);
+		}
+		return list;
+	}
+
+	
+	public RevTree getTree(Repository repository)
+			throws AmbiguousObjectException, IncorrectObjectTypeException, IOException, MissingObjectException {
+		ObjectId lastCommitId = repository.resolve(Constants.HEAD);
+
+		// a RevWalk allows to walk over commits based on some filtering
+		try (RevWalk revWalk = new RevWalk(repository)) {
+			System.out.println("bbb");
+			RevCommit commit = revWalk.parseCommit(lastCommitId);
+
+			System.out.println("Time of commit (seconds since epoch): " + commit.getCommitTime());
+
+			// and using commit's tree find the path
+			RevTree tree = commit.getTree();
+			System.out.println("Having tree: " + tree);
+			
+			return tree;
+		}
+	}
+
+	// 트리 구조를 이용해서 재귀함수로 해당 디렉토리를 찾고 내용을 fileList에 넣어준다
+	public List<String> showContent(List<String> fileList, TreeWalk treeWalk, String path, int depth, int current)
+			throws MissingObjectException, IncorrectObjectTypeException, CorruptObjectException, IOException {
+		int tempInt = current;
+		String[] temp = path.split("/");
+
+		if (tempInt != depth) {
+			tempInt++;
+			if (depth > tempInt) {
+				path = path.substring(path.indexOf(temp[1]));
+			}
+
+			System.out.println("currentDir: " + temp[0]);
+			while (treeWalk.next()) {
+				if (treeWalk.getNameString().startsWith(temp[0])) {
+					treeWalk.enterSubtree();
+					showContent(fileList, treeWalk, path, depth, tempInt);
+				}
+			}
+		} else {
+			while (treeWalk.next()) {
+				if (treeWalk.getDepth() == depth) {
+					fileList.add(treeWalk.getNameString());
+				}
+			}
+		}
+		return fileList;
+	}
+
+	// zip파일 다운로드
+	public void getProjectZip(String creatorName, String projectName, HttpServletResponse response) throws IOException {
+		Repository repository = openRepository();
+
+		try {
+			ArchiveCommand.registerFormat("zip", new ZipFormat());
+			ArchiveCommand.registerFormat("tar", new TarFormat());
+
+			ObjectId revId = repository.resolve("master");
+			Git git = new Git(repository);
+			git.archive().setOutputStream(response.getOutputStream()).setFormat("zip").setTree(revId).call();
+
+			ArchiveCommand.unregisterFormat("zip");
+			ArchiveCommand.unregisterFormat("tar");
+			response.flushBuffer();
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+}

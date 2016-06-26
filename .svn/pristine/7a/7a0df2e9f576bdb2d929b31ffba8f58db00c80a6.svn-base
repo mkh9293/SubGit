@@ -1,0 +1,33 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="subgit.mapper.LeaderMapper">
+	<select id="selectAll" resultType="subgit.dto.Leader">
+		SELECT *
+		FROM leader
+	</select>
+	
+	<select id="selectByLoginId" resultType="subgit.dto.Leader">
+        SELECT * FROM leader WHERE leaderNum = #{loginId}
+    </select>
+    
+    <select id="selectByIdx" resultType="subgit.dto.Leader">
+        SELECT leaderNum, gitName FROM leader WHERE idx = #{idx}
+    </select>
+    
+	<insert id="insert" useGeneratedKeys="true" keyProperty="idx">
+		INSERT leader (leaderNum, gitName)
+		VALUES(#{leaderNum},#{gitName})
+	</insert>
+	
+	<update id="update">
+        UPDATE leader SET 
+        	leaderNum = #{leaderNum},
+            gitName = #{gitName}
+            
+        WHERE idx = #{idx}
+    </update>
+    <delete id="delete">
+        DELETE FROM leader WHERE idx = #{idx}
+    </delete>
+</mapper>
