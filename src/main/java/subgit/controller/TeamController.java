@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,9 +16,11 @@ import org.eclipse.jgit.api.errors.NoFilepatternException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.lib.FileMode;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.gitective.core.BlobUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,6 +31,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import subgit.dto.AuthorIdent;
+import subgit.dto.Chart;
+import subgit.dto.ChartData;
 import subgit.dto.CodeInfo;
 import subgit.dto.FileStatus;
 import subgit.dto.Leader;
@@ -38,6 +41,7 @@ import subgit.dto.Team;
 import subgit.mapper.LeaderMapper;
 import subgit.mapper.TeamMapper;
 import subgit.mapper.UserMapper;
+import subgit.util.CodeViewUtil;
 import subgit.util.GitUtil;
 
 @Controller
@@ -66,6 +70,134 @@ public class TeamController {
 			gitUtil.setLocalPath("D:/"+url2);
 			gitUtil.pullRepository();
 		}
+	}
+	
+	@RequestMapping(value="/chart",method=RequestMethod.GET)
+	public String chart(Model model,Team team){
+		
+		List<Person> list = userMapper.selectByLoginId(team.getLeaderNum_fk());
+		Leader leader = new Leader();
+		leader = leaderMapper.selectByIdx(team.getLeaderNum_fk());
+		Person leaderPerson = new Person();
+		leaderPerson.setStName(leader.getGitName());
+		leaderPerson.setStNum(leader.getLeaderNum());
+		list.add(leaderPerson);
+		
+		model.addAttribute("p_list",list);
+		model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
+		model.addAttribute("gitURL",team.getTeamURL());
+		model.addAttribute("uri", team.getTeamRepo());
+		model.addAttribute("teamName", team.getTeamName());
+		model.addAttribute("intro", team.getIntro());
+		return "teampage/chart";
+	}
+	
+	@RequestMapping("/jsonChart")
+	public @ResponseBody Object jsonChart(Model model,Team team) throws NoHeadException, GitAPIException, IOException{
+		GitUtil gitUtil = new GitUtil();
+		gitUtil.setLocalPath(team.getTeamRepo());
+		List<AuthorIdent> list = new ArrayList<AuthorIdent>();
+		list = gitUtil.personalCommitCount();
+	
+		Chart chart = new Chart();
+		ArrayList<ChartData> chartDataList = new ArrayList<ChartData>();
+		
+		Integer[] lines = new Integer[2];
+		
+		for(AuthorIdent author : list){
+			Map<Integer,Integer> map = new HashMap<Integer,Integer>();
+			List<CodeInfo> commitList = new ArrayList<CodeInfo>();
+			commitList = gitUtil.commitInfo(author.getName());
+			ChartData chartData = new ChartData();
+			ArrayList<Integer> lineList = new ArrayList<Integer>();
+			
+			chartData.setName(author.getName());
+			for(int i=0;i<12;i++){
+				lineList.add(0);
+				map.put(i, 0);
+			}
+			
+			for(CodeInfo commit : commitList){
+				int addline = 0;
+				String[] array;
+				array = commit.getCommitDate().split("-");
+				
+				if(array[1].contains("0")){
+					array[1] = array[1].split("0")[1];
+				}
+				
+				for(int i=1;i<=12;i++){
+					if(String.valueOf(i).equals(array[1])){
+						int tempAdd = gitUtil.commitCountList(commit.getCommitId())[0];
+						int tempMap = map.get(i);
+						tempMap += tempAdd;
+						map.put(i,tempMap);
+						lineList.set(i-1, map.get(i));
+						break;
+					}
+				}
+				
+				chartData.setData(lineList);
+			}
+			
+			chartDataList.add(chartData);
+		}
+		chart.setChartData(chartDataList);
+		return chart;
+	}
+	
+	@RequestMapping("/jsonChart2")
+	public @ResponseBody Object jsonChart2(Model model,Team team) throws NoHeadException, GitAPIException, IOException{
+		GitUtil gitUtil = new GitUtil();
+		gitUtil.setLocalPath(team.getTeamRepo());
+		List<AuthorIdent> list = new ArrayList<AuthorIdent>();
+		list = gitUtil.personalCommitCount();
+	
+		Chart chart = new Chart();
+		ArrayList<ChartData> chartDataList = new ArrayList<ChartData>();
+		
+		Integer[] lines = new Integer[2];
+		
+		for(AuthorIdent author : list){
+			Map<Integer,Integer> map = new HashMap<Integer,Integer>();
+			List<CodeInfo> commitList = new ArrayList<CodeInfo>();
+			commitList = gitUtil.commitInfo(author.getName());
+			ChartData chartData = new ChartData();
+			ArrayList<Integer> lineList = new ArrayList<Integer>();
+			
+			chartData.setName(author.getName());
+			for(int i=0;i<12;i++){
+				lineList.add(0);
+				map.put(i, 0);
+			}
+			
+			for(CodeInfo commit : commitList){
+				int addline = 0;
+				String[] array;
+				array = commit.getCommitDate().split("-");
+				
+				if(array[1].contains("0")){
+					array[1] = array[1].split("0")[1];
+				}
+				
+				for(int i=1;i<=12;i++){
+					if(String.valueOf(i).equals(array[1])){
+						int tempAdd = gitUtil.commitCountList(commit.getCommitId())[1];
+						int tempMap = map.get(i);
+						tempMap += tempAdd;
+						map.put(i,tempMap);
+						lineList.set(i-1, map.get(i));
+						break;
+					}
+				}
+				
+				chartData.setData(lineList);
+			}
+			
+			chartDataList.add(chartData);
+		}
+		chart.setChartData(chartDataList);
+		return chart;
 	}
 	
 	@RequestMapping(value="/teamEnter",method=RequestMethod.GET)
@@ -115,6 +247,8 @@ public class TeamController {
 		model.addAttribute("leaderNum", leaderPerson.getStNum());
 		model.addAttribute("codeListInfo", codeList);
 		model.addAttribute("uri", url);
+		model.addAttribute("teamName", team.getTeamName());
+		model.addAttribute("intro", team.getIntro());
 		return "teampage/gitHome";
 	}
 	
@@ -157,6 +291,7 @@ public class TeamController {
 		List<CodeInfo> commitList = new ArrayList<CodeInfo>();
 //		String url = gitUtil.uniCode(team.getTeamURL());
 		gitUtil.setLocalPath(team.getTeamRepo());
+
 		commitList = gitUtil.commitInfo(st);
 		int commitListSize = 0;
 		/*팀리스트 .. sidebar부분에 넣어줘야한다.*/
@@ -189,7 +324,6 @@ public class TeamController {
 //				System.out.println(changedFileList.get(commit.getCommitId()).get(i));
 //				System.out.println(commitCountList.get(changedFileList.get(commit.getCommitId()).get(i)));
 			}
-			
 		}
 	
 		model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
@@ -202,7 +336,8 @@ public class TeamController {
 		model.addAttribute("p_list", list);
 		model.addAttribute("author", st);
 		model.addAttribute("uri", team.getTeamRepo());
-		
+		model.addAttribute("teamName", team.getTeamName());
+		model.addAttribute("intro", team.getIntro());
 		return "teampage/gitMember";
 	}
 
@@ -243,11 +378,59 @@ public class TeamController {
 		model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
 		model.addAttribute("gitURL",team.getTeamURL());
 		model.addAttribute("uri", team.getTeamRepo());
-		
+		model.addAttribute("teamName", team.getTeamName());
+		model.addAttribute("intro", team.getIntro());
 		return "teampage/gitFileView";
 	}
 	
-	@RequestMapping(value="/fileBrowse1/{repoName}", method = RequestMethod.GET)
+	@RequestMapping(value="/fileBrowse", method = RequestMethod.GET)
+	public String fileBrowse(Team team,Model model) throws IOException{
+		List<FileStatus> fileList = new ArrayList<FileStatus>();
+		GitUtil gitUtil = new GitUtil();
+		String url = gitUtil.uniCode(team.getTeamURL());
+		gitUtil.setLocalPath(url);
+		
+		List<Person> list = userMapper.selectByLoginId(team.getLeaderNum_fk());
+		Leader leader = new Leader();
+		leader = leaderMapper.selectByIdx(team.getLeaderNum_fk());
+		Person leaderPerson = new Person();
+		leaderPerson.setStName(leader.getGitName());
+		leaderPerson.setStNum(leader.getLeaderNum());
+		list.add(leaderPerson);
+		
+		//여기서 팀명을 set해주면 될 것같다
+		Repository res = gitUtil.openRepository();
+
+		RevTree rev = gitUtil.getTree(res);
+		
+		TreeWalk treeWalk = new TreeWalk(res);
+		treeWalk.addTree(rev);
+		treeWalk.setRecursive(false);
+		
+		while (treeWalk.next()) {
+			FileStatus fileStatus = new FileStatus();
+			fileStatus.setFileName(treeWalk.getNameString());
+			FileMode fileMode = treeWalk.getFileMode(0);
+			fileStatus.setKind(gitUtil.getFileMode(fileMode));
+			fileStatus.setDepth(treeWalk.getDepth());
+			fileStatus.setPath(treeWalk.getPathString());
+			System.out.println(treeWalk.getNameString()+" = name "+treeWalk.getDepth()+" = depth");
+			fileList.add(fileStatus);
+        }
+
+		
+		model.addAttribute("p_list",list);
+		model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
+		model.addAttribute("gitURL",team.getTeamURL());
+		model.addAttribute("fileInfo",fileList);
+		model.addAttribute("uri", team.getTeamRepo());
+		model.addAttribute("teamName", team.getTeamName());
+		model.addAttribute("intro", team.getIntro());
+		return "teampage/gitBrowse";
+		
+	}
+	
+	/*@RequestMapping(value="/fileBrowse1/{repoName}", method = RequestMethod.GET)
 	public String showContent2(Team team,HttpServletRequest req,Model model ,@PathVariable("repoName")String repoName,Team team) throws IOException{
 		System.out.println("find url2");
 		List<String> list = new ArrayList<String>();
@@ -273,100 +456,100 @@ public class TeamController {
 		model.addAttribute("uri",repoName);
 		return "teampage/gitBrowse";
 		
-	}
+	}*/
 	//프로젝트의 내용을 볼때 사용된다
-	@RequestMapping(value="/fileBrowse1/{repoName}/{dirName}", method = RequestMethod.GET)
-	public String showContent3(Team team,HttpServletRequest req,Model model,@PathVariable("dirName")String dirName
-			,@PathVariable("repoName")String repoName) throws IOException{
-			System.out.println("find url");
+	@RequestMapping(value={"/fileBrowse2/{repoName}/{depth}/{dirName}","/fileBrowse2/{repoName}/{depth}/{dirName}/**"}, method = RequestMethod.GET)
+	public String fileBrowse(Model model,Team team,FileStatus fileStatus,@PathVariable("repoName")String repoName,
+			@PathVariable("dirName")String dirName,@PathVariable("depth")int depth,HttpServletRequest req) throws IOException{
 			GitUtil gitUtil = new GitUtil();
 //			String url = gitUtil.uniCode(dirName);
 			gitUtil.setLocalPath(repoName);
-			//여기서 팀명을 set해주면 될 것같다
+			
+			List<Person> list = userMapper.selectByLoginId(team.getLeaderNum_fk());
+			Leader leader = new Leader();
+			leader = leaderMapper.selectByIdx(team.getLeaderNum_fk());
+			Person leaderPerson = new Person();
+			leaderPerson.setStName(leader.getGitName());
+			leaderPerson.setStNum(leader.getLeaderNum());
+			list.add(leaderPerson);
+			
 			Repository res = gitUtil.openRepository();
-
-			RevTree rev = gitUtil.getTree(res);
+			List<FileStatus> fileList = new ArrayList<FileStatus>();
 			
-			TreeWalk treeWalk = new TreeWalk(res);
-			treeWalk.addTree(rev);
-			treeWalk.setRecursive(false);
-		
-			List<FileStatus> list = new ArrayList<FileStatus>();
-			
-//			if(dirName != null){
-				List<String> fileInfo = new ArrayList();
+			if(fileStatus.getKind().equals("dir")){
+				RevTree rev = gitUtil.getTree(res);
+				
+				TreeWalk treeWalk = new TreeWalk(res);
+				treeWalk.addTree(rev);
+				treeWalk.setRecursive(false);
 	
-				System.out.println("url: "+req.getRequestURI());
-				
-				//dirName부터 뒤에 출력
 				String path1 = req.getRequestURI().substring(req.getRequestURI().indexOf(dirName));
-				System.out.println(path1+" = path1");
-				String[] temp1 = path1.split("/");
+				System.out.println(path1 + " ===== path1");
+				System.out.println(depth+1 + " ===== depth");
+				fileList = gitUtil.fileBrowse(fileList,treeWalk,path1,depth+1,0);
 				
-				StringBuilder sb = new StringBuilder();
-				for(int i=0;i<temp1.length;i++){
-					sb.append(temp1[i]+"/");
-//					System.out.println(sb.toString()+" i = sb");
-					System.out.println(temp1[i]+" i = temp");
+				model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
+				model.addAttribute("gitURL",team.getTeamURL());
+				model.addAttribute("fileInfo",fileList);
+				model.addAttribute("uri",repoName);
+				model.addAttribute("p_list",list);
+				model.addAttribute("gitURL",team.getTeamURL());
+				model.addAttribute("teamName", team.getTeamName());
+				model.addAttribute("intro", team.getIntro());
+				return "teampage/gitBrowse";
+			}
+			else{
+				String path1 = req.getRequestURI().substring(req.getRequestURI().indexOf(dirName));
+				String fileName = CodeViewUtil.getFileName(path1);
+				String fileExtension =CodeViewUtil.getFileExtension(fileName);
+				
+				if(CodeViewUtil.isCodeName(fileName)==false){
+					fileExtension=" ";
+				
+				}									
+				if(fileExtension.equals("txt")){
+					fileExtension="text";
+				}else if(fileExtension.equals("jsp"))
+				{
+					fileExtension="html";
 				}
 				
-				int depth = temp1.length;
-				System.out.println("depth: "+depth);
-				System.out.println(sb.toString()+ "= toString");
-				list = gitUtil.showContent(fileInfo, treeWalk, sb.toString(), depth, 0);
-				
-				for(FileStatus mode : list){
-					System.out.println(mode.getFileName()+" fileA");
-					if(mode.getKind().equals("dir")){
-						mode.setFileName(sb.toString()+mode.getFileName());
-						list.add(mode);
-						System.out.println(mode.getFileName()+" fileName");
-					}
-				}
-//				String[] lists = fileInfo.toArray(new String[fileInfo.size()]);
-//			
-//				for(int i=0;i<lists.length;i++){
-//					System.out.println("list: "+lists[i]);
-//				}
-//			}else{
-//				while (treeWalk.next()) {
-//					FileStatus fileStatus = new FileStatus();
-//			        FileMode fileMode = treeWalk.getFileMode(0);
-//			        fileStatus.setFileName(treeWalk.getPathString());
-//			        fileStatus.setKind(gitUtil.getFileMode(fileMode));
-//			        list.add(fileStatus);
-//		        }
-//			}
-			
-			model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
-			model.addAttribute("gitURL",team.getTeamURL());
-			model.addAttribute("fileInfo",list);
-			model.addAttribute("uri",repoName);
-			return "teampage/gitBrowse";
+				Ref head = res.exactRef("refs/heads/master");
+				model.addAttribute("fileContent",BlobUtils.getContent(res, head.getObjectId(), path1));
+				model.addAttribute("path", dirName);
+				model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
+				model.addAttribute("gitURL",team.getTeamURL());
+				model.addAttribute("uri",repoName);
+				model.addAttribute("p_list",list);
+				model.addAttribute("teamName", team.getTeamName());
+				model.addAttribute("intro", team.getIntro());
+				model.addAttribute("fileExtension",fileExtension);
+				return "teampage/gitDetail";
+			}
 		}
 		
-		@RequestMapping("/fileBrowse")
-		public String fileBrowse(Model model, Team team,@RequestParam(value="path", required=false) String path) throws IOException{
-			GitUtil gitUtil = new GitUtil();
-			String url = gitUtil.uniCode(team.getTeamURL());
-			gitUtil.setLocalPath(url);
-			//여기서 팀명을 set해주면 될 것같다
-			
-			Repository res = gitUtil.openRepository();
-
-			RevTree rev = gitUtil.getTree(res);
-			
-			TreeWalk treeWalk = new TreeWalk(res);
-			treeWalk.addTree(rev);
-			treeWalk.setRecursive(false);
-			
-			List<FileStatus> files = new ArrayList<FileStatus>();
-			
-		/*	while(treeWalk.next()){
-				System.out.println(treeWalk.getPathString());
-			}*/
-			System.out.println(path);
-			files = gitUtil.showFileContent(treeWalk,path,0);
+//		@RequestMapping("/fileBrowse")
+//		public String fileBrowse(Model model, Team team,@RequestParam(value="path", required=false) String path) throws IOException{
+//			GitUtil gitUtil = new GitUtil();
+//			String url = gitUtil.uniCode(team.getTeamURL());
+//			gitUtil.setLocalPath(url);
+//			//여기서 팀명을 set해주면 될 것같다
+//			
+//			Repository res = gitUtil.openRepository();
+//
+//			RevTree rev = gitUtil.getTree(res);
+//			
+//			TreeWalk treeWalk = new TreeWalk(res);
+//			treeWalk.addTree(rev);
+//			treeWalk.setRecursive(false);
+//			
+//			List<FileStatus> files = new ArrayList<FileStatus>();
+//			
+//		/*	while(treeWalk.next()){
+//				System.out.println(treeWalk.getPathString());
+//			}*/
+//			System.out.println(path);
+//			files = gitUtil.showFileContent(treeWalk,path,0);
 //			if(path != null){
 //				System.out.println(path);
 //				treeWalk.getNameString().startsWith(path);
@@ -380,10 +563,10 @@ public class TeamController {
 //	            files.add(fileStatus);
 //	        }
 			
-			model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
-			model.addAttribute("gitURL",team.getTeamURL());
-			model.addAttribute("files", files);
-			return "teampage/gitBrowse";
-		}
-		
+//			model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
+//			model.addAttribute("gitURL",team.getTeamURL());
+//			model.addAttribute("files", files);
+//			return "teampage/gitBrowse";
+//		}
+//		
 }
