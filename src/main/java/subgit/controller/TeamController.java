@@ -60,16 +60,11 @@ public class TeamController {
 	
 	@RequestMapping("/exitTeam")
 	public void exitTeam(@RequestParam("fk")int fk,@RequestParam("gitURL")String url) throws IOException, NoFilepatternException, GitAPIException{
-		System.out.println(exist.get(fk)+" 현재 밸류 값");
-		exist.compute(fk, (k,v) -> --v);
-		System.out.println(exist.get(fk)+" 삭제 후 밸류 값");
-		if(exist.get(fk)==0){
 			GitUtil gitUtil = new GitUtil();
 			System.out.println("remove~");
 			String url2 = gitUtil.uniCode(url);
 			gitUtil.setLocalPath("D:/"+url2);
 			gitUtil.pullRepository();
-		}
 	}
 	
 	@RequestMapping(value="/chart",method=RequestMethod.GET)

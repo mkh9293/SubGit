@@ -20,7 +20,10 @@ function myFunction(){
 		type: "GET",
 		url: "./exitTeam",
 		data: {"fk":fk,"gitURL":url},
-		success : function() {
+		success : function(data) {
+			alert(1);
+			window.location.href(true);
+			alert(2);
 		}
 	}); 
 } 
