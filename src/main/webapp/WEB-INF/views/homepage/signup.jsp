@@ -25,6 +25,7 @@
 					$('#urlBtn i').addClass("glyphicon-ok");
 					$('#urlBtn').html("등록완료");
 					$('#urlBtn').attr('disabled',true);
+					$('#teamList table').append("<tbody><tr><td>Student Number</td><td>Github ID</td><td>Select Leader</td></tr></tbody>");
 					for(var i=0;i<datas.length;i++){
 						forms += "<tr id='teamNum"+i+"'><td><input type='text' name='stNum' placeholder='학번 입력' /></td>"
 								  +"<td><input type='text' name='stName' value='"+datas[i]+"' readonly /></td>"
@@ -98,13 +99,13 @@
 					
 					<div id="teamList">
 						<table>
-							<tbody>
+							<!-- <tbody>
 								<tr>
 									<td>Student Number</td>
 									<td>Github ID</td>
 									<td>Select Leader</td>
 								</tr>
-							</tbody>
+							</tbody> -->
 							<%-- <tr>
 								<td><input type="text" name="leaderNum" value=""
 									placeholder="팀장 학번" /></td>

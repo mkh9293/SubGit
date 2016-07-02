@@ -201,17 +201,6 @@ public class TeamController {
 	public String teamEnter(Model model,Team team) throws InvalidRemoteException, TransportException, GitAPIException, IOException{
 		GitUtil gitUtil = new GitUtil();
 		int leaderNum = team.getLeaderNum_fk();
-		// leaderNum을 이용해 디렉토리가 존재하는지 확인 후 있으면 값을 1씩 추가, 없으면 새로 생성 후 1로 초기화
-//		if(exist.containsKey(leaderNum)){
-//			System.out.println(exist.get(leaderNum)+" 첫");
-//			exist.compute(leaderNum, (k,v) -> v == null? 1:v+1);
-//			System.out.println(exist.get(leaderNum)+" 둘");
-//			
-//		}else{
-//			System.out.println(exist.get(leaderNum)+" 셋");
-//			exist.put(leaderNum,1);
-//			gitUtil.cloneRepository(team.getTeamURL());
-//		}
 		
 		String url = gitUtil.uniCode(team.getTeamURL());
 		gitUtil.setLocalPath(url);
