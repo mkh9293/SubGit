@@ -32,7 +32,7 @@
 							onerror="this.src='${pageContext.request.contextPath}/resources/img/main/logo2.jpg';">
 						<h3>
 							<a
-								href="${teamList.section }/teampage/teamEnter?teamURL=${teamList.teamURL }&leaderNum_fk=${teamList.leaderNum_fk}"
+								href="${teamList.section }/teampage/teamEnter?teamName=${teamList.teamName }&teamURL=${teamList.teamURL }&leaderNum_fk=${teamList.leaderNum_fk}"
 								target="_blank">${teamList.teamName }</a>
 						</h3>
 						<p>${teamList.intro }</p>
