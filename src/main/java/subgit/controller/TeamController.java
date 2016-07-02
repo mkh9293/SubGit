@@ -58,13 +58,15 @@ public class TeamController {
 	// 스레드에 안전하게 디렉토리가 존재하는지 검사하기 위한 변수
 	private static ConcurrentHashMap<Integer,Integer> exist = new ConcurrentHashMap<Integer,Integer>();
 	
-	@RequestMapping("/exitTeam")
-	public void exitTeam(@RequestParam("fk")int fk,@RequestParam("gitURL")String url) throws IOException, NoFilepatternException, GitAPIException{
+	@RequestMapping(value="/exitTeam",method=RequestMethod.GET)
+	public @ResponseBody String exitTeam(@RequestParam("fk")int fk,@RequestParam("gitURL")String url) throws IOException, NoFilepatternException, GitAPIException{
 			GitUtil gitUtil = new GitUtil();
 			System.out.println("remove~");
 			String url2 = gitUtil.uniCode(url);
-			gitUtil.setLocalPath("D:/"+url2);
+			gitUtil.setLocalPath(url2);
 			gitUtil.pullRepository();
+			System.out.println("test");
+			return "pull";
 	}
 	
 	@RequestMapping(value="/chart",method=RequestMethod.GET)

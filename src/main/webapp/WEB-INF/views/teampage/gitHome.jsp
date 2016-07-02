@@ -21,9 +21,12 @@ function myFunction(){
 		url: "./exitTeam",
 		data: {"fk":fk,"gitURL":url},
 		success : function(data) {
-			alert(1);
-			window.location.href(true);
-			alert(2);
+			if(data){
+				alert(data);
+				alert(1);
+				window.location.reload(true);
+				alert(2);
+			}
 		}
 	}); 
 } 
