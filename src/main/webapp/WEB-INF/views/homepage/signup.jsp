@@ -118,14 +118,15 @@
 					<br />
 
 					<button type="submit" class="btn btn-primary" name="signup">SignUp</button>
+			 </div>
+		</div>
 				</form>
-			</div>
-
+		
+	</div>
 			<hr />
 			<!-- Footer -->
 			<%@include file="/WEB-INF/includes/footer.jsp"%>
 			<!-- End Footer -->
-		</div>
-	</div>
+
 </body>
 </html>
