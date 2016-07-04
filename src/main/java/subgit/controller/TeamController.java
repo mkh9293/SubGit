@@ -92,7 +92,8 @@ public class TeamController {
 	@RequestMapping("/jsonChart")
 	public @ResponseBody Object jsonChart(Model model,Team team) throws NoHeadException, GitAPIException, IOException{
 		GitUtil gitUtil = new GitUtil();
-		gitUtil.setLocalPath(team.getTeamRepo());
+		System.out.println(team.getTeamRepo());
+		gitUtil.setLocalPath("68747470733A2F2F6769746875622E636F6D2F6D6B68393239332F5375624769742E676974");
 		List<AuthorIdent> list = new ArrayList<AuthorIdent>();
 		list = gitUtil.personalCommitCount();
 	
@@ -102,16 +103,19 @@ public class TeamController {
 		Integer[] lines = new Integer[2];
 		
 		for(AuthorIdent author : list){
-			Map<Integer,Integer> map = new HashMap<Integer,Integer>();
+			Map<Integer,Integer[]> map = new HashMap<Integer,Integer[]>();
 			List<CodeInfo> commitList = new ArrayList<CodeInfo>();
 			commitList = gitUtil.commitInfo(author.getName());
 			ChartData chartData = new ChartData();
-			ArrayList<Integer> lineList = new ArrayList<Integer>();
+			ArrayList<Integer[]> lineList = new ArrayList<Integer[]>();
 			
 			chartData.setName(author.getName());
 			for(int i=0;i<12;i++){
-				lineList.add(0);
-				map.put(i, 0);
+				Integer[] tempLine = new Integer[2];
+				tempLine[0] = 0;
+				tempLine[1] = 0;
+				lineList.add(tempLine);
+				map.put(i, tempLine);
 			}
 			
 			for(CodeInfo commit : commitList){
@@ -125,11 +129,17 @@ public class TeamController {
 				
 				for(int i=1;i<=12;i++){
 					if(String.valueOf(i).equals(array[1])){
-						int tempAdd = gitUtil.commitCountList(commit.getCommitId())[0];
-						int tempMap = map.get(i);
-						tempMap += tempAdd;
+						Integer[] tempLine = new Integer[2];
+						tempLine[0] = gitUtil.commitCountList(commit.getCommitId())[0];
+						tempLine[1] = gitUtil.commitCountList(commit.getCommitId())[1];
+						
+						
+						Integer[] tempMap = map.get(i);
+						tempMap[0] += tempLine[0];
+						tempMap[1] += tempLine[1];
 						map.put(i,tempMap);
 						lineList.set(i-1, map.get(i));
+						
 						break;
 					}
 				}
@@ -140,62 +150,69 @@ public class TeamController {
 			chartDataList.add(chartData);
 		}
 		chart.setChartData(chartDataList);
+		/*for(ChartData c : chart.getChartData()){
+			System.out.println(c.getName());
+			for(Integer[] d: c.getData()){
+				System.out.println(d[0] + " 00000");
+				System.out.println(d[1] + " 11111");
+			}
+		}*/
 		return chart;
 	}
 	
-	@RequestMapping("/jsonChart2")
-	public @ResponseBody Object jsonChart2(Model model,Team team) throws NoHeadException, GitAPIException, IOException{
-		GitUtil gitUtil = new GitUtil();
-		gitUtil.setLocalPath(team.getTeamRepo());
-		List<AuthorIdent> list = new ArrayList<AuthorIdent>();
-		list = gitUtil.personalCommitCount();
-	
-		Chart chart = new Chart();
-		ArrayList<ChartData> chartDataList = new ArrayList<ChartData>();
-		
-		Integer[] lines = new Integer[2];
-		
-		for(AuthorIdent author : list){
-			Map<Integer,Integer> map = new HashMap<Integer,Integer>();
-			List<CodeInfo> commitList = new ArrayList<CodeInfo>();
-			commitList = gitUtil.commitInfo(author.getName());
-			ChartData chartData = new ChartData();
-			ArrayList<Integer> lineList = new ArrayList<Integer>();
-			
-			chartData.setName(author.getName());
-			for(int i=0;i<12;i++){
-				lineList.add(0);
-				map.put(i, 0);
-			}
-			
-			for(CodeInfo commit : commitList){
-				int addline = 0;
-				String[] array;
-				array = commit.getCommitDate().split("-");
-				
-				if(array[1].contains("0")){
-					array[1] = array[1].split("0")[1];
-				}
-				
-				for(int i=1;i<=12;i++){
-					if(String.valueOf(i).equals(array[1])){
-						int tempAdd = gitUtil.commitCountList(commit.getCommitId())[1];
-						int tempMap = map.get(i);
-						tempMap += tempAdd;
-						map.put(i,tempMap);
-						lineList.set(i-1, map.get(i));
-						break;
-					}
-				}
-				
-				chartData.setData(lineList);
-			}
-			
-			chartDataList.add(chartData);
-		}
-		chart.setChartData(chartDataList);
-		return chart;
-	}
+//	@RequestMapping("/jsonChart2")
+//	public @ResponseBody Object jsonChart2(Model model,Team team) throws NoHeadException, GitAPIException, IOException{
+//		GitUtil gitUtil = new GitUtil();
+//		gitUtil.setLocalPath(team.getTeamRepo());
+//		List<AuthorIdent> list = new ArrayList<AuthorIdent>();
+//		list = gitUtil.personalCommitCount();
+//	
+//		Chart chart = new Chart();
+//		ArrayList<ChartData> chartDataList = new ArrayList<ChartData>();
+//		
+//		Integer[] lines = new Integer[2];
+//		
+//		for(AuthorIdent author : list){
+//			Map<Integer,Integer> map = new HashMap<Integer,Integer>();
+//			List<CodeInfo> commitList = new ArrayList<CodeInfo>();
+//			commitList = gitUtil.commitInfo(author.getName());
+//			ChartData chartData = new ChartData();
+//			ArrayList<Integer> lineList = new ArrayList<Integer>();
+//			
+//			chartData.setName(author.getName());
+//			for(int i=0;i<12;i++){
+//				lineList.add(0);
+//				map.put(i, 0);
+//			}
+//			
+//			for(CodeInfo commit : commitList){
+//				int addline = 0;
+//				String[] array;
+//				array = commit.getCommitDate().split("-");
+//				
+//				if(array[1].contains("0")){
+//					array[1] = array[1].split("0")[1];
+//				}
+//				
+//				for(int i=1;i<=12;i++){
+//					if(String.valueOf(i).equals(array[1])){
+//						int tempAdd = gitUtil.commitCountList(commit.getCommitId())[1];
+//						int tempMap = map.get(i);
+//						tempMap += tempAdd;
+//						map.put(i,tempMap);
+//						lineList.set(i-1, map.get(i));
+//						break;
+//					}
+//				}
+//				
+//				chartData.setData(lineList);
+//			}
+//			
+//			chartDataList.add(chartData);
+//		}
+//		chart.setChartData(chartDataList);
+//		return chart;
+//	}
 	
 	@RequestMapping(value="/teamEnter",method=RequestMethod.GET)
 	public String teamEnter(Model model,Team team) throws InvalidRemoteException, TransportException, GitAPIException, IOException{
