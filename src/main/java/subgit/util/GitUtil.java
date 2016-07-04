@@ -75,12 +75,6 @@ public class GitUtil {
 	}
 
 	public Repository openRepository() throws IOException {
-		/*
-		 * FileRepositoryBuilder builder = new FileRepositoryBuilder();
-		 * Repository repository = builder .readEnvironment() // scan
-		 * environment GIT_* variables .findGitDir() // scan up the file system
-		 * tree .build(); System.out.println(repository);
-		 */
 		File localPath = new File("D:/"+getLocalPath(), "");
 		git = Git.open(localPath);
 		return git.getRepository();
@@ -119,41 +113,6 @@ public class GitUtil {
             git.pull().call();
         }
 	}
-	
-//	public boolean removeRepository(String str) throws IOException, NoFilepatternException, GitAPIException{
-//		File delDir = new File(str);
-//		
-//		System.out.println(delDir.getName());
-//		try{
-//		  if(delDir.isDirectory()) {
-//			  //System.out.println(delDir.getName());
-//			  if(delDir.isHidden()){
-//				  System.out.println("숨김파일이다.");
-//				  if(delDir.getName().equals(".git")){  
-//					  File reFile = new File(str+"/git");
-//					  System.out.println(reFile.getName()+" 첫");
-//					  delDir.renameTo(reFile);
-//					  System.out.println(delDir.getName()+" 둘");
-//				  }
-//				  
-//			  }
-//		   File[] allFiles = delDir.listFiles();
-//		   
-//		   for(File delAllDir : allFiles) {
-//			   removeRepository(delAllDir.getAbsolutePath());
-//		   }
-//		  }
-//		  else{
-//			  System.out.println("else");
-//		  }
-//		}catch(Exception e){
-//			e.printStackTrace();
-//		}
-//		
-//		  System.out.println(delDir.getName()+" name");
-//		  git.rm().addFilepattern(delDir.getName()).call();
-//		  return delDir.delete();
-//	}
 	
 	// 전체 팀 커밋 수를 구해주는 메소드
 	public int allCommitCount() throws NoHeadException, GitAPIException, IOException {
@@ -652,8 +611,6 @@ public class GitUtil {
 			return "Symlink";
 		} else {
 			return "error";
-			/*// there are a few others, see FileMode javadoc for details
-			throw new IllegalArgumentException("Unknown type of file encountered: " + fileMode);*/
 		}
 	}
 	

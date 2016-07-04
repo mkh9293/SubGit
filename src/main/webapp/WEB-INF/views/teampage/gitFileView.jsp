@@ -87,12 +87,5 @@
 			</div>
 		</div>
 	</div>
-<!-- 	<script>
-		$(function() {
-			$(".pr").linedtextarea({
-				selectedLine : 1
-			});
-		});
-	</script> -->
 </body>
 </html>

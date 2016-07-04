@@ -99,35 +99,6 @@
 					
 					<div id="teamList">
 						<table>
-							<!-- <tbody>
-								<tr>
-									<td>Student Number</td>
-									<td>Github ID</td>
-									<td>Select Leader</td>
-								</tr>
-							</tbody> -->
-							<%-- <tr>
-								<td><input type="text" name="leaderNum" value=""
-									placeholder="팀장 학번" /></td>
-								<td><input type="text" name="gitName" value=""
-									placeholder="팀장 깃아이디" /></td>
-								<td style="text-align: left;"><img 
-									src="<c:url value="/resources/img/signup/add.png"/>" alt="add"
-									class="add" style="width: 30px; cursor: pointer"
-									ng-click="addPerson()" /></td>
-							</tr>
-
-							<tr ng-repeat="person in people">
-								<td><input type="text" name="stNum" ng-model="person.stNum"
-									placeholder="팀원 학번" /></td>
-								<td><input type="text" name="st_gitName"
-									ng-model="person.gitId" placeholder="팀원 깃아이디" /></td>
-								<td style="text-align: left;"><img
-									src="<c:url value="/resources/img/signup/remove.jpg"/>"
-									alt="remove" class="remove"
-									style="width: 30px; cursor: pointer"
-									ng-click="removePerson($index)" /></td>
-							</tr> --%>
 						</table>
 					</div>
 					
@@ -157,23 +128,4 @@
 		</div>
 	</div>
 </body>
-<!-- <script type="text/javascript">
-	var app = angular.module('myapp', []);
-
-	app.controller('SignUpController', function($scope) {
-		$scope.people = [ {
-			stNum : '',
-			gitId : ''
-		} ];
-
-		$scope.addPerson = function() {
-			var newPerson = $scope.people.length + 1;
-			$scope.people.push({});
-		};
-
-		$scope.removePerson = function(i) {
-			$scope.people.splice(i, 1);
-		};
-	});
-</script> -->
 </html>

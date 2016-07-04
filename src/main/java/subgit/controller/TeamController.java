@@ -303,13 +303,6 @@ public class TeamController {
 			
 			System.out.println(commitCountList.get(commit.getCommitId())[0]+" = add"+commitCountList.get(commit.getCommitId())[1]+" = delete");
 			int s = changedFileList.get(commit.getCommitId()).size();
-			for(int i=0;i<s;i++){
-//				commitCountList(changedFileList.get(commit.getCommitId()).get(i),gitUtil.commitCountList(commit.getCommitId(),changedFileList.get(commit.getCommitId()).get(i)));
-//				System.out.println(changedFileList.get(commit.getCommitId()).get(i)+" filename");
-//				commitCountList.put(changedFileList.get(commit.getCommitId()).get(i), gitUtil.commitCountList(commit.getCommitId(),changedFileList.get(commit.getCommitId()).get(i)));
-//				System.out.println(changedFileList.get(commit.getCommitId()).get(i));
-//				System.out.println(commitCountList.get(changedFileList.get(commit.getCommitId()).get(i)));
-			}
 		}
 	
 		model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
@@ -415,40 +408,12 @@ public class TeamController {
 		return "teampage/gitBrowse";
 		
 	}
-	
-	/*@RequestMapping(value="/fileBrowse1/{repoName}", method = RequestMethod.GET)
-	public String showContent2(Team team,HttpServletRequest req,Model model ,@PathVariable("repoName")String repoName,Team team) throws IOException{
-		System.out.println("find url2");
-		List<String> list = new ArrayList<String>();
-		GitUtil gitUtil = new GitUtil();
-//		String url = gitUtil.uniCode(dirName);
-		gitUtil.setLocalPath(repoName);
-		//여기서 팀명을 set해주면 될 것같다
-		Repository res = gitUtil.openRepository();
 
-		RevTree rev = gitUtil.getTree(res);
-		
-		TreeWalk treeWalk = new TreeWalk(res);
-		treeWalk.addTree(rev);
-		treeWalk.setRecursive(false);
-		
-		while (treeWalk.next()) {
-	        list.add(treeWalk.getNameString());
-        }
-		
-		model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
-		model.addAttribute("gitURL",team.getTeamURL());
-		model.addAttribute("fileInfo",list);
-		model.addAttribute("uri",repoName);
-		return "teampage/gitBrowse";
-		
-	}*/
 	//프로젝트의 내용을 볼때 사용된다
 	@RequestMapping(value={"/fileBrowse2/{repoName}/{depth}/{dirName}","/fileBrowse2/{repoName}/{depth}/{dirName}/**"}, method = RequestMethod.GET)
 	public String fileBrowse(Model model,Team team,FileStatus fileStatus,@PathVariable("repoName")String repoName,
 			@PathVariable("dirName")String dirName,@PathVariable("depth")int depth,HttpServletRequest req) throws IOException{
 			GitUtil gitUtil = new GitUtil();
-//			String url = gitUtil.uniCode(dirName);
 			gitUtil.setLocalPath(repoName);
 			
 			List<Person> list = userMapper.selectByLoginId(team.getLeaderNum_fk());
@@ -513,46 +478,4 @@ public class TeamController {
 				return "teampage/gitDetail";
 			}
 		}
-		
-//		@RequestMapping("/fileBrowse")
-//		public String fileBrowse(Model model, Team team,@RequestParam(value="path", required=false) String path) throws IOException{
-//			GitUtil gitUtil = new GitUtil();
-//			String url = gitUtil.uniCode(team.getTeamURL());
-//			gitUtil.setLocalPath(url);
-//			//여기서 팀명을 set해주면 될 것같다
-//			
-//			Repository res = gitUtil.openRepository();
-//
-//			RevTree rev = gitUtil.getTree(res);
-//			
-//			TreeWalk treeWalk = new TreeWalk(res);
-//			treeWalk.addTree(rev);
-//			treeWalk.setRecursive(false);
-//			
-//			List<FileStatus> files = new ArrayList<FileStatus>();
-//			
-//		/*	while(treeWalk.next()){
-//				System.out.println(treeWalk.getPathString());
-//			}*/
-//			System.out.println(path);
-//			files = gitUtil.showFileContent(treeWalk,path,0);
-//			if(path != null){
-//				System.out.println(path);
-//				treeWalk.getNameString().startsWith(path);
-//				treeWalk.enterSubtree();
-//			}
-//			while (treeWalk.next()) {
-//				FileStatus fileStatus = new FileStatus();
-//	            FileMode fileMode = treeWalk.getFileMode(0);
-//	            fileStatus.setFileName(treeWalk.getPathString());
-//	            fileStatus.setKind(gitUtil.getFileMode(fileMode));
-//	            files.add(fileStatus);
-//	        }
-			
-//			model.addAttribute("leaderNum_fk", team.getLeaderNum_fk());
-//			model.addAttribute("gitURL",team.getTeamURL());
-//			model.addAttribute("files", files);
-//			return "teampage/gitBrowse";
-//		}
-//		
 }

@@ -153,28 +153,6 @@
  								 </div>
 							</c:forEach>
 							</div>
-					<%-- 	<div style="position:relative; width:45%; display:inline-block;">
-						<ul class="list-group">
-							<c:forEach var="commit" items="${commitList}">
-								<li class="list-group-item">
-								<span class="badge">${changedFileCount[commit.commitId]}</span>
-									${commit.commitDate}
-								</li>
-							</c:forEach>
-						</ul>
-						</div>
-						<div style="position:relative; width:45%; border:1px solid green; display:inline-block;">
-							
-							<ul class="list-group">
-								<c:forEach var="commit" items="${commitList}">
-									<li class="list-group-item toggleItem toggle">
-										${changedFileList[commit.commitId]}
-									</li>
-								</c:forEach>
-							</ul>
-							
-	
-						</div> --%>
 					</div>
 				</div>
 			</div>
