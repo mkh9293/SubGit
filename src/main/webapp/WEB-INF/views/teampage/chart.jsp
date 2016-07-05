@@ -92,13 +92,18 @@ $.ajax({
 		var jsonInfo = data;
 		for(var i in jsonInfo.chartData){
 			datas.push(jsonInfo.chartData[i].data);
-			alert(datas.pop)
+			/* datas.push(jsonInfo.chartData[i].data);
+			alert(datas.pop) */
 			 
 			/* myNames.push(jsonInfo.chartData[i].name);
 			for(var j in myNames){
 				
 			} */
 		}
+		for(var j in datas){
+			var even = datas[j]%2;
+			alert(even);
+		}	
 /* 		var arr1 = JSON.stringify(jsonInfo.chartData).slice(1);
 		var arr2 = arr1.slice(0,-1); */
 
